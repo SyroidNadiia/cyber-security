@@ -1,6 +1,8 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
+const handleSaveErrors = require("../helpers/handelSaveErrors");
 const { Schema } = mongoose;
+
 const movieSchema = new Schema({
   title: {
     type: String,
@@ -55,6 +57,25 @@ const movieSchema = new Schema({
   },
 });
 
-const Movie = mongoose.model('Movie', movieSchema);
+movieSchema.post("save", handleSaveErrors);
+
+const movieSchemaValidation = Joi.object({
+  title: Joi.string().required(),
+  image: Joi.string(),
+  language: Joi.string().required(),
+  genre: Joi.string().required(),
+  director: Joi.string().required(),
+  cast: Joi.string().required(),
+  description: Joi.string().required(),
+  duration: Joi.number().required(),
+  releaseDate: Joi.date().required(),
+  endDate: Joi.date().required(),
+});
+
+movieSchema.methods.validateMovieData = function validateMovie(movieData) {
+  return movieSchemaValidation.validate(movieData);
+};
+
+const Movie = mongoose.model("Movie", movieSchema);
 
 module.exports = Movie;

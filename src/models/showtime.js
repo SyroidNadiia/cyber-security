@@ -1,4 +1,6 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
+const Joi = require("joi");
+const handleSaveErrors = require("../helpers/handelSaveErrors");
 
 const { Schema } = mongoose;
 const showtimeSchema = new Schema({
@@ -17,16 +19,32 @@ const showtimeSchema = new Schema({
   },
   movieId: {
     type: Schema.Types.ObjectId,
-    ref: 'Movie',
+    ref: "Movie",
     required: true,
   },
   cinemaId: {
     type: Schema.Types.ObjectId,
-    ref: 'Cinema',
+    ref: "Cinema",
     required: true,
   },
 });
 
-const Showtime = mongoose.model('Showtime', showtimeSchema);
+showtimeSchema.post("save", handleSaveErrors);
+
+const showtimeSchemaValidation = Joi.object({
+  startAt: Joi.string().required(),
+  startDate: Joi.date().required(),
+  endDate: Joi.date().required(),
+  movieId: Joi.string().required(),
+  cinemaId: Joi.string().required(),
+});
+
+showtimeSchema.methods.validateShowtimeData = function validateShowtime(
+  showtimeData
+) {
+  return showtimeSchemaValidation.validate(showtimeData);
+};
+
+const Showtime = mongoose.model("Showtime", showtimeSchema);
 
 module.exports = Showtime;
