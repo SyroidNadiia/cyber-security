@@ -5,13 +5,12 @@ const cors = require("cors");
 const winston = require("winston");
 const { JSDOM } = require("jsdom");
 const createDOMPurify = require("dompurify");
+require("dotenv").config();
 
 if (process.env.NODE_ENV !== "production") {
   // eslint-disable-next-line import/no-extraneous-dependencies, global-require, node/no-unpublished-require
   require("dotenv").config({ path: path.join(__dirname, "../.env") });
 }
-
-require("./db/mongoose");
 
 const winstonLogger = winston.createLogger({
   transports: [
@@ -31,7 +30,7 @@ const invitationsRouter = require("./routes/invitations");
 
 const app = express();
 app.disable("x-powered-by");
-const port = process.env.PORT || 8080;
+
 app.use(cors());
 
 // Serve static files from the React app
@@ -87,4 +86,4 @@ app.use((err, req, res, next) => {
   res.status(status).json({ message });
 });
 
-
+module.exports = app;
