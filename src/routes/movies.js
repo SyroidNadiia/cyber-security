@@ -20,7 +20,7 @@ router.post('/movies', async (req, res) => {
 router.get(
   '/movies/photo/:id',
   auth.enhance,
-  upload('movies').single('file'),
+  upload.single('file'),
   async (req, res, next) => {
     const url = `${req.protocol}://${req.get('host')}`;
     const { file } = req;

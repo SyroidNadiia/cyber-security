@@ -1,29 +1,26 @@
-const multer = require('multer');
+const multer = require("multer");
+const path = require("path");
+const { nanoid } = require("nanoid");
 
-const storage = path =>
-  multer.diskStorage({
-    destination: `./uploads/${path}`,
-    filename: (req, file, cb) => {
-      cb(null, `${Date.now()}-${file.originalname}`);
-    },
-  });
+const tmpDir = path.join(__dirname, "../", "tmp");
 
-const upload = path =>
-  multer({
-    storage: storage(path),
-    // eslint-disable-next-line consistent-return
-    fileFilter: (req, file, cb) => {
-      if (
-        file.mimetype === 'image/png' ||
-        file.mimetype === 'image/jpg' ||
-        file.mimetype === 'image/jpeg'
-      ) {
-        cb(null, true);
-      } else {
-        cb(null, false);
-        return cb(new Error('Only .png, .jpg and .jpeg format allowed!'));
-      }
-    },
-  });
+const multerConfig = multer.diskStorage({
+  destination: tmpDir,
+  filename: (req, file, cb) => {
+    const uniqueFilename = nanoid() + path.extname(file.originalname);
+    cb(null, uniqueFilename);
+  },
+});
+
+const upload = multer({
+  storage: multerConfig,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Неприпустимий тип файлу"));
+    }
+  },
+});
 
 module.exports = upload;

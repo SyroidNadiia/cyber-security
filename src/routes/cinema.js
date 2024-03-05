@@ -18,7 +18,7 @@ router.post('/cinemas', async (req, res) => {
 });
 
 // eslint-disable-next-line consistent-return
-router.post('/cinemas/photo/:id', upload('cinemas').single('file'), async (req, res, next) => {
+router.post('/cinemas/photo/:id', upload.single('file'), async (req, res, next) => {
   const url = `${req.protocol}://${req.get('host')}`;
   const { file } = req;
   const movieId = req.params.id;
