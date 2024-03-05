@@ -78,11 +78,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// app.get('/api/test', (req, res) => res.send('Hello World'))
+app.use((req, res) => {
+  res.status(404).json({ message: "Not found" });
+});
 
-// The "catchall" handler: for any request that doesn't
-// match one above, send back React's index.html file.
-// app.get("/*", (req, res) => {
-//   res.sendFile(path.join(`${__dirname}../../client/build/index.html`));
-// });
-// app.listen(port, () => console.log(`app is running in PORT: ${port}`));
+app.use((err, req, res, next) => {
+  const { status = 500, message = "Server error" } = err;
+  res.status(status).json({ message });
+});
+
+
