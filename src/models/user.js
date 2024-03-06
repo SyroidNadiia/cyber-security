@@ -24,7 +24,7 @@ const userSchema = Schema(
     email: {
       type: String,
       unique: true,
-      required: true,
+      required: [true, "Email is required"],
       trim: true,
       lowercase: true,
       validate(value) {
@@ -36,11 +36,16 @@ const userSchema = Schema(
     password: {
       type: String,
       trim: true,
-      minlength: 7,
-      validate(value) {
-        if (value.toLowerCase().includes("password")) {
-          throw new Error("Password should not contain word: password");
-        }
+      minlength: 8,
+      required: [true, "Set password for user"],
+      validate: {
+        validator: function (value) {
+          return /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{8,}$/.test(
+            value
+          );
+        },
+        message:
+          "Password must contain at least one lowercase letter, one uppercase letter, one digit, and one special character (!@#$%^&*)",
       },
     },
     role: {
@@ -106,7 +111,6 @@ const registerSchema = Joi.object({
 
 const loginSchema = Joi.object({
   email: Joi.string().pattern(emailRegexp).required(),
-  username: Joi.string().required(),
   password: Joi.string().required(),
 });
 

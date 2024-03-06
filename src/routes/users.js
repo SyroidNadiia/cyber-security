@@ -87,11 +87,15 @@ router.post("/users/login", async (req, res, next) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
 
+    if (!user) {
+      await increaseLoginAttempts(email);
+      throw HttpError(401, "Email is wrong");
+    }
     const passwordCompare = await bcrypt.compare(password, user.password);
 
-    if (!user || !passwordCompare) {
+    if (!passwordCompare) {
       await increaseLoginAttempts(email);
-      throw HttpError(401, "Email or password is wrong");
+      throw new HttpError(401, "password is wrong");
     }
 
     if (!user.verify) {
