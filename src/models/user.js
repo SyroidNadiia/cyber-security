@@ -62,14 +62,10 @@ const userSchema = Schema(
     imageurl: {
       type: String,
     },
-    tokens: [
-      {
-        token: {
-          type: String,
-          required: true,
-        },
-      },
-    ],
+    token: {
+      type: String,
+      default: "",
+    },
     verify: {
       type: Boolean,
       default: false,
@@ -109,6 +105,7 @@ const registerSchema = Joi.object({
 });
 
 const loginSchema = Joi.object({
+  email: Joi.string().pattern(emailRegexp).required(),
   username: Joi.string().required(),
   password: Joi.string().required(),
 });
