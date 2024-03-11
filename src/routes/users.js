@@ -1,59 +1,67 @@
 const express = require("express");
+const router = new express.Router();
+
+const { validation } = require("../middlewares");
+
 const upload = require("../utils/multer");
-const User = require("../models/user");
+
+const { User, schemas } = require("../models/user");
 const auth = require("../middlewares/auth");
-const { increaseLoginAttempts } = require("../utils/authUtils");
+const increaseLoginAttempts = require("../utils/authUtils");
 const bcrypt = require("bcrypt");
 const gravatar = require("gravatar");
 const { nanoid } = require("nanoid");
 
 const { createVerifyEmail, sendEmail, HttpError } = require("../helpers");
 
-const router = new express.Router();
-
+const { SECRET_KEY } = process.env;
 // Create a user
-router.post("/users", async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
+router.post(
+  "/users",
+  validation(schemas.registerSchema),
+  async (req, res, next) => {
+    try {
+      const { email, password } = req.body;
+      const user = await User.findOne({ email });
 
-    if (user) {
-      throw HttpError(409, "Email already in use");
-    }
+      if (user) {
+        throw HttpError(409, "Email already in use");
+      }
 
-    const hashPassword = await bcrypt.hash(password, 10);
-    const avatarURL = gravatar.url(email);
+      const hashPassword = await bcrypt.hash(password, 10);
+      const avatarURL = gravatar.url(email);
 
-    const verificationToken = nanoid();
+      const verificationToken = nanoid();
 
-    const newUser = await User.create({
-      ...req.body,
-      password: hashPassword,
-      avatarURL,
-      verificationToken,
-    });
+      const newUser = await User.create({
+        ...req.body,
+        password: hashPassword,
+        avatarURL,
+        verificationToken,
+      });
 
-    newUser.verificationToken = verificationToken;
-    await newUser.save();
+      newUser.verificationToken = verificationToken;
+      await newUser.save();
 
-    const verifyEmail = createVerifyEmail(verificationToken, email);
-    await sendEmail(verifyEmail);
+      const verifyEmail = createVerifyEmail(verificationToken, email);
+      await sendEmail(verifyEmail);
 
-    res.status(201).json({
-      status: "success",
-      code: 201,
-      date: {
-        user: {
-          email: newUser.email,
-          subscription: newUser.subscription,
+      res.status(201).json({
+        status: "success",
+        code: 201,
+        date: {
+          user: {
+            email: newUser.email,
+            subscription: newUser.subscription,
+          },
         },
-      },
-    });
-  } catch (error) {
-    console.error(error);
-    next(error);
+      });
+    } catch (error) {
+      console.error(error);
+      next(error);
+    }
   }
-});
+);
 
 // eslint-disable-next-line consistent-return
 router.post(
@@ -82,48 +90,52 @@ router.post(
 );
 
 // Login User
-router.post("/users/login", async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
+router.post(
+  "/users/login",
+  validation(schemas.loginSchema),
+  async (req, res, next) => {
+    try {
+      const { email, password } = req.body;
+      const user = await User.findOne({ email });
 
-    if (!user) {
-      await increaseLoginAttempts(email);
-      throw HttpError(401, "Email is wrong");
-    }
-    const passwordCompare = await bcrypt.compare(password, user.password);
+      if (!user) {
+        // await increaseLoginAttempts(email);
+        throw HttpError(401, "Email is wrong");
+      }
+      const passwordCompare = await bcrypt.compare(password, user.password);
 
-    if (!passwordCompare) {
-      await increaseLoginAttempts(email);
-      throw new HttpError(401, "password is wrong");
-    }
+      if (!passwordCompare) {
+        // await increaseLoginAttempts(email);
+        throw new HttpError(401, "password is wrong");
+      }
 
-    if (!user.verify) {
-      throw HttpError(401, `Verification not confirmed`);
-    }
+      if (!user.verify) {
+        throw HttpError(401, `Verification not confirmed`);
+      }
 
-    const payload = {
-      id: user._id,
-    };
+      const payload = {
+        id: user._id,
+      };
 
-    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "23h" });
-    await User.findByIdAndUpdate(user._id, { token });
+      const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "23h" });
+      await User.findByIdAndUpdate(user._id, { token });
 
-    res.json({
-      status: "success",
-      code: 200,
-      data: {
-        token,
-        user: {
-          email: user.email,
+      res.json({
+        status: "success",
+        code: 200,
+        data: {
+          token,
+          user: {
+            email: user.email,
+          },
         },
-      },
-    });
-  } catch (error) {
-    console.error(error);
-    next(error);
+      });
+    } catch (error) {
+      console.error(error);
+      next(error);
+    }
   }
-});
+);
 
 // Logout user
 router.post("/users/logout", auth.simple, async (req, res) => {

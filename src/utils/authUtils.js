@@ -1,4 +1,4 @@
-const User = require("../models/user");
+const { User } = require("../models/user");
 
 const increaseLoginAttempts = async (email) => {
   try {
@@ -13,20 +13,9 @@ const increaseLoginAttempts = async (email) => {
     }
 
     await user.save();
-    return "Login attempts increased successfully";
   } catch (error) {
-    if (error.name === "MongoError" && error.code === 11000) {
-      throw new Error(
-        "Duplicate key error: Login attempts could not be increased"
-      );
-    } else if (error.message === "User not found") {
-      throw new Error("User not found");
-    } else {
-      throw new Error("Failed to increase login attempts");
-    }
+    throw new Error("Failed to increase login attempts");
   }
 };
 
-module.exports = {
-  increaseLoginAttempts,
-};
+module.exports = increaseLoginAttempts;

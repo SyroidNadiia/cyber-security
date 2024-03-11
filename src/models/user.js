@@ -1,13 +1,11 @@
-const mongoose = require("mongoose");
-const validator = require("validator");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const { Schema, model } = require("mongoose");
 const Joi = require("joi");
-const emailRegexp = require("./emailRegexp");
 
 const handleSaveErrors = require("../helpers/handelSaveErrors");
-const { Schema } = mongoose;
-const userSchema = Schema(
+
+const emailRegexp = require("./emailRegexp");
+
+const userSchema = new Schema(
   {
     name: {
       type: String,
@@ -88,10 +86,10 @@ const userSchema = Schema(
       default: null,
     },
   },
-  {
-    timestamps: true,
-  }
+  { versionKey: false, timestamps: true }
 );
+
+userSchema.post("save", handleSaveErrors);
 
 const registerSchema = Joi.object({
   name: Joi.string().required(),
@@ -118,72 +116,15 @@ const verifyEmailSchema = Joi.object({
   email: Joi.string().pattern(emailRegexp).required(),
 });
 
-userSchema.post("save", handleSaveErrors);
-
-userSchema.methods.toJSON = function () {
-  const user = this;
-  const userObject = user.toObject();
-  if (!userObject.role === "superadmin") {
-    delete userObject.updatedAt;
-    delete userObject.__v;
-  }
-  delete userObject.password;
-  delete userObject.tokens;
-
-  return userObject;
+const schemas = {
+  registerSchema,
+  loginSchema,
+  verifyEmailSchema,
 };
 
-function verifyEmail(email) {
-  const validationResult = verifyEmailSchema.validate({ email });
-  if (validationResult.error) {
-    throw new Error(validationResult.error.details[0].message);
-  }
-}
+const User = model("user", userSchema);
 
-userSchema.methods.generateAuthToken = async function () {
-  const user = this;
-  const token = jwt.sign({ _id: user._id.toString() }, "mySecret");
-  user.tokens = user.tokens.concat({ token });
-  await user.save();
-  return token;
+module.exports = {
+  User,
+  schemas,
 };
-
-userSchema.statics.findByCredentials = async (username, password) => {
-  // eslint-disable-next-line no-use-before-define
-  const user = await User.findOne({ username });
-  if (!user) throw new Error("Unable to login");
-
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) throw new Error("Unable to login");
-
-  return user;
-};
-
-// Hash the plain text password before save
-userSchema.pre("save", async function (next) {
-  const user = this;
-
-  try {
-    verifyEmail(user.email);
-
-    if (user.isModified("password")) {
-      user.password = await bcrypt.hash(user.password, 8);
-    }
-
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-userSchema.methods.validateRegisterInput = function (userInput) {
-  return registerSchema.validate(userInput);
-};
-
-userSchema.methods.validateLoginInput = function (loginInput) {
-  return loginSchema.validate(loginInput);
-};
-
-const User = mongoose.model("User", userSchema);
-
-module.exports = User;
